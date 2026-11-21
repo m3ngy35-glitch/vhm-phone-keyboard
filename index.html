@@ -2,36 +2,45 @@
 <html lang="km">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>VHM Phone Keyboard</title>
 <style>
-  :root { --bg:#fff; --fg:#111; --mut:#777; --line:#e3e3e3; --acc:#111; --card:#f4f4f4; --chip:#fff3c4; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#121212; --fg:#eee; --mut:#999; --line:#333; --acc:#eee; --card:#1f1f1f; --chip:#4a3f12; } }
+  :root { --bg:#fff; --fg:#111; --mut:#777; --line:#e3e3e3; --acc:#111; --card:#f1f1f1; --me:#0a7cff; --chip:#fff3c4; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#121212; --fg:#eee; --mut:#999; --line:#2e2e2e; --acc:#eee; --card:#262626; --chip:#4a3f12; } }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  body { margin:0; background:var(--bg); color:var(--fg);
-         font:16px/1.5 "Noto Sans Khmer","Khmer OS System","Kantumruy Pro",system-ui,sans-serif;
-         display:flex; flex-direction:column; height:100dvh; }
-  header { padding:10px 12px 6px; border-bottom:1px solid var(--line); }
-  #who { font-weight:600; font-size:15px; display:flex; justify-content:space-between; gap:8px; }
-  #dot { font-size:12px; color:var(--mut); font-weight:400; }
-  #msg { font-size:14px; color:var(--mut); white-space:pre-wrap; max-height:64px; overflow:auto; }
-  main { flex:1; overflow:auto; padding:6px 12px; }
-  .card { background:var(--card); border-radius:12px; padding:10px 12px; margin:8px 0; }
-  .card .head { font-size:12px; color:var(--mut); display:flex; gap:6px; flex-wrap:wrap; }
-  .chip { background:var(--chip); color:var(--fg); border-radius:6px; padding:0 6px; }
-  .card .text { white-space:pre-wrap; margin-top:2px; }
-  .empty { color:var(--mut); font-size:14px; padding:8px 0; }
-  #search { width:100%; font:inherit; font-size:15px; border:1px solid var(--line); border-radius:10px;
-            padding:8px 10px; background:var(--bg); color:var(--fg); }
-  footer { border-top:1px solid var(--line); padding:8px 10px calc(8px + env(safe-area-inset-bottom)); }
-  textarea { width:100%; font:inherit; border:1px solid var(--line); border-radius:12px; padding:10px;
-             background:var(--bg); color:var(--fg); resize:none; height:96px; }
-  .row { display:flex; gap:8px; margin-top:8px; }
-  button { flex:1; font:inherit; font-weight:600; border-radius:12px; padding:12px; border:1px solid var(--line);
-           background:var(--bg); color:var(--fg); }
-  button.dark { background:var(--acc); color:var(--bg); border-color:var(--acc); }
+  html, body { margin:0; height:100%; }
+  body { background:var(--bg); color:var(--fg); display:flex; flex-direction:column; height:100dvh;
+         font:16px/1.45 "Noto Sans Khmer","Khmer OS System","Kantumruy Pro",system-ui,sans-serif; }
+  header { display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--line); }
+  #cust { flex:1; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #dot { font-size:12px; }
+  #findBtn { border:none; background:none; font-size:20px; padding:2px 6px; color:var(--fg); }
+  #chat { flex:1; overflow-y:auto; padding:10px 10px 4px; display:flex; flex-direction:column; gap:4px; }
+  .b { max-width:80%; padding:7px 11px; border-radius:16px; white-space:pre-wrap; word-wrap:break-word; font-size:15px; }
+  .b.customer { align-self:flex-start; background:var(--card); border-bottom-left-radius:4px; }
+  .b.shop { align-self:flex-end; background:var(--me); color:#fff; border-bottom-right-radius:4px; }
+  .b.unknown { align-self:center; background:none; color:var(--mut); font-size:13px; }
+  .empty { color:var(--mut); font-size:14px; text-align:center; margin:auto; padding:20px; }
+  #tpl { border-top:1px solid var(--line); padding:6px 8px 0; }
+  #search { display:none; width:100%; font:inherit; font-size:15px; border:1px solid var(--line); border-radius:10px;
+            padding:7px 10px; background:var(--bg); color:var(--fg); margin-bottom:6px; }
+  #search.on { display:block; }
+  #strip { display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; }
+  #strip:empty { display:none; }
+  .t { flex:0 0 auto; max-width:72vw; background:var(--chip); color:var(--fg); border-radius:12px; padding:6px 10px; font-size:14px; }
+  .t b { display:block; font-size:12px; }
+  .t span { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  footer { padding:6px 8px calc(6px + env(safe-area-inset-bottom)); }
+  .row { display:flex; gap:6px; align-items:flex-end; }
+  textarea { flex:1; font:inherit; font-size:16px; border:1px solid var(--line); border-radius:18px; padding:8px 12px;
+             background:var(--bg); color:var(--fg); resize:none; height:42px; max-height:140px; }
+  button.act { font:inherit; font-weight:600; border-radius:18px; padding:9px 12px; border:1px solid var(--line);
+               background:var(--bg); color:var(--fg); white-space:nowrap; }
+  button.dark { background:var(--me); color:#fff; border-color:var(--me); }
   button:disabled { opacity:.5; }
-  #status { font-size:13px; color:var(--mut); min-height:20px; margin-top:4px; text-align:center; }
+  #status { font-size:12px; color:var(--mut); text-align:center; min-height:16px; margin-top:3px; }
+  #info { font-size:10px; color:var(--mut); text-align:center; word-break:break-all; }
+  #info a { color:var(--mut); }
   #setup { padding:20px; }
   #setup input { width:100%; font:inherit; padding:10px; margin:6px 0 14px; border:1px solid var(--line);
                  border-radius:10px; background:var(--bg); color:var(--fg); }
@@ -43,33 +52,34 @@
   <p>បើក link ពី VHM Chat Assist នៅលើ laptop · Open the link copied from VHM Chat Assist on the laptop.</p>
   <label>Database URL</label><input id="sDb">
   <label>Laptop code</label><input id="sCode">
-  <button class="dark" id="sGo">ភ្ជាប់ · Connect</button>
+  <button class="act dark" id="sGo" style="width:100%">ភ្ជាប់ · Connect</button>
 </div>
 
 <div id="app" style="display:none">
   <header>
-    <div id="who"><span id="cust">—</span><span id="dot">○</span></div>
-    <div id="msg"></div>
+    <span id="cust">—</span>
+    <button id="findBtn" aria-label="Search templates">🔍</button>
+    <span id="dot">○</span>
   </header>
-  <main>
+  <div id="chat"></div>
+  <div id="tpl">
     <input id="search" placeholder="ស្វែងរកគំរូ · Search templates">
-    <div id="list"></div>
-  </main>
+    <div id="strip"></div>
+  </div>
   <footer>
-    <textarea id="box" placeholder="វាយសារនៅទីនេះ · Type here"></textarea>
     <div class="row">
-      <button id="ins">បញ្ចូល · Insert</button>
-      <button id="snd" class="dark">ផ្ញើ · Send</button>
+      <textarea id="box" rows="1" placeholder="វាយសារ · Type"></textarea>
+      <button id="ins" class="act">បញ្ចូល</button>
+      <button id="snd" class="act dark">ផ្ញើ</button>
     </div>
     <div id="status"></div>
-    <div id="info" style="font-size:11px;color:var(--mut);text-align:center;word-break:break-all"></div>
-    <div style="text-align:center"><a href="#" id="reset" style="font-size:12px;color:var(--mut)">Reset link</a></div>
+    <div id="info"></div>
   </footer>
 </div>
 
 <script>
 const $ = (id) => document.getElementById(id);
-let cfg = {}, data = {}, es = null, pending = 0;
+let cfg = {}, data = {}, es = null, pending = 0, lastChatKey = '';
 
 // ---- config from link (#db=...&k=...) or saved ----
 function readConfig() {
@@ -100,13 +110,13 @@ function setPath(obj, path, val) {
 function connect() {
   if (es) es.close();
   es = new EventSource(url(''));
-  es.onopen = () => { $('dot').textContent = '🟢'; };
+  es.onopen = () => { $('dot').textContent = '🟢'; showInfo(); };
   es.onerror = async () => {
     $('dot').textContent = '🔴';
     try {
       const r = await fetch(url(''));
-      $('info').textContent = 'Test: HTTP ' + r.status + ' ' + (await r.text()).slice(0, 80);
-    } catch (err) { $('info').textContent = 'Test failed: ' + (err.message || err); }
+      showInfo('Test: HTTP ' + r.status + ' ' + (await r.text()).slice(0, 80));
+    } catch (err) { showInfo('Test failed: ' + (err.message || err)); }
   };
   const apply = (e, patch) => {
     let ev; try { ev = JSON.parse(e.data); } catch { return; }
@@ -118,46 +128,74 @@ function connect() {
   es.addEventListener('patch', (e) => apply(e, true));
 }
 
+function showInfo(extra) {
+  const info = $('info');
+  info.textContent = (extra ? extra + ' · ' : '') + (cfg.db || '').replace(/^https:\/\//, '').split('.')[0] + ' · ' + cfg.k + ' · ';
+  const a = document.createElement('a'); a.href = '#'; a.textContent = 'Reset';
+  a.onclick = (e) => { e.preventDefault(); try { localStorage.removeItem('vhmkb'); } catch {} location.href = location.pathname; };
+  info.appendChild(a);
+}
+
 const norm = (s) => (s || '').toLowerCase();
 
-function render() {
-  data = data || {};
-  const st = data.state || {};
-  $('cust').textContent = st.customer || '—';
-  $('msg').textContent = st.msg || '';
+function renderChat(st) {
+  const msgs = st.messages || [];
+  const key = (st.customer || '') + JSON.stringify(msgs);
+  if (key === lastChatKey) return;
+  lastChatKey = key;
+  const chat = $('chat');
+  const atBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 80;
+  chat.innerHTML = '';
+  if (!msgs.length) {
+    chat.innerHTML = '<div class="empty">បើកឆាតនៅលើ laptop · Open a chat on the laptop</div>';
+    return;
+  }
+  for (const m of msgs) {
+    const d = document.createElement('div');
+    d.className = 'b ' + (m.who === 'customer' || m.who === 'shop' ? m.who : 'unknown');
+    d.textContent = m.text;
+    chat.appendChild(d);
+  }
+  if (atBottom || true) chat.scrollTop = chat.scrollHeight;
+}
+
+function renderTemplates(st) {
   const q = norm($('search').value.trim());
   let items;
   if (q) {
     items = (data.templates || []).filter((t) =>
       norm(t.title).includes(q) || norm(t.text).includes(q) || (t.keywords || []).some((k) => norm(k).includes(q)))
-      .map((t) => ({ title: t.title, text: t.text.replace(/\{name\}/g, st.customer || 'បង'), found: [] }));
+      .map((t) => ({ title: t.title, text: t.text.replace(/\{name\}/g, st.customer || 'បង') }));
   } else items = st.matches || [];
-  const list = $('list');
-  list.innerHTML = '';
-  if (!items.length) {
-    list.innerHTML = `<div class="empty">${q ? 'រកមិនឃើញ · Nothing found' : 'គ្មានពាក្យគន្លឹះត្រូវ · No keyword matched'}</div>`;
-  }
+  const strip = $('strip');
+  strip.innerHTML = '';
   for (const it of items) {
-    const c = document.createElement('div'); c.className = 'card';
-    const h = document.createElement('div'); h.className = 'head';
-    const b = document.createElement('b'); b.textContent = it.title || ''; h.appendChild(b);
-    for (const k of it.found || []) { const s = document.createElement('span'); s.className = 'chip'; s.textContent = k; h.appendChild(s); }
-    const t = document.createElement('div'); t.className = 'text'; t.textContent = it.text;
-    c.append(h, t);
-    c.onclick = () => { $('box').value = it.text; $('box').focus(); };
-    list.appendChild(c);
+    const c = document.createElement('div'); c.className = 't';
+    const b = document.createElement('b'); b.textContent = it.title || '';
+    const s = document.createElement('span'); s.textContent = it.text;
+    c.append(b, s);
+    c.onclick = () => { $('box').value = it.text; grow(); $('box').focus(); };
+    strip.appendChild(c);
   }
-  // result of last send
+}
+
+function render() {
+  data = data || {};
+  const st = data.state || {};
+  $('cust').textContent = st.customer || '—';
+  renderChat(st);
+  renderTemplates(st);
   const ack = data.ack;
   if (pending && ack && ack.ts === pending) {
-    $('status').textContent = ack.ok ? (ack.sent ? '✓ ផ្ញើរួច · Sent' : '✓ បានបញ្ចូលលើ laptop · Inserted on laptop')
+    $('status').textContent = ack.ok ? (ack.sent ? '✓ ផ្ញើរួច · Sent' : '✓ បានបញ្ចូល · Inserted on laptop')
                                      : '✗ មិនបាន — បើកឆាតលើ laptop · Failed — open the chat on the laptop';
-    if (ack.ok) $('box').value = '';
+    if (ack.ok) { $('box').value = ''; grow(); }
     pending = 0; lock(false);
   }
 }
 
 function lock(on) { $('ins').disabled = on; $('snd').disabled = on; }
+function grow() { const b = $('box'); b.style.height = '42px'; b.style.height = Math.min(b.scrollHeight + 2, 140) + 'px'; }
 
 async function push(send) {
   const text = $('box').value.trim();
@@ -182,18 +220,18 @@ async function push(send) {
 
 $('ins').onclick = () => push(false);
 $('snd').onclick = () => push(true);
+$('box').oninput = grow;
 $('search').oninput = render;
-
-$('reset').onclick = (e) => {
-  e.preventDefault();
-  try { localStorage.removeItem('vhmkb'); } catch {}
-  location.href = location.pathname;
+$('findBtn').onclick = () => {
+  const s = $('search');
+  s.classList.toggle('on');
+  if (s.classList.contains('on')) s.focus(); else { s.value = ''; render(); }
 };
 
 function start() {
-  $('info').textContent = (cfg.db || '').replace(/^https:\/\//, '') + ' · ' + cfg.k;
   $('setup').hidden = true;
   $('app').style.display = 'contents';
+  showInfo();
   connect();
 }
 $('sGo').onclick = () => {
