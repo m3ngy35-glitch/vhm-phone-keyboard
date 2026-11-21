@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VHM Phone Keyboard</title>
+<style>
+  :root { --bg:#fff; --fg:#111; --mut:#777; --line:#e3e3e3; --acc:#111; --card:#f4f4f4; --chip:#fff3c4; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#121212; --fg:#eee; --mut:#999; --line:#333; --acc:#eee; --card:#1f1f1f; --chip:#4a3f12; } }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:16px/1.5 "Noto Sans Khmer","Khmer OS System","Kantumruy Pro",system-ui,sans-serif;
+         display:flex; flex-direction:column; height:100dvh; }
+  header { padding:10px 12px 6px; border-bottom:1px solid var(--line); }
+  #who { font-weight:600; font-size:15px; display:flex; justify-content:space-between; gap:8px; }
+  #dot { font-size:12px; color:var(--mut); font-weight:400; }
+  #msg { font-size:14px; color:var(--mut); white-space:pre-wrap; max-height:64px; overflow:auto; }
+  main { flex:1; overflow:auto; padding:6px 12px; }
+  .card { background:var(--card); border-radius:12px; padding:10px 12px; margin:8px 0; }
+  .card .head { font-size:12px; color:var(--mut); display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { background:var(--chip); color:var(--fg); border-radius:6px; padding:0 6px; }
+  .card .text { white-space:pre-wrap; margin-top:2px; }
+  .empty { color:var(--mut); font-size:14px; padding:8px 0; }
+  #search { width:100%; font:inherit; font-size:15px; border:1px solid var(--line); border-radius:10px;
+            padding:8px 10px; background:var(--bg); color:var(--fg); }
+  footer { border-top:1px solid var(--line); padding:8px 10px calc(8px + env(safe-area-inset-bottom)); }
+  textarea { width:100%; font:inherit; border:1px solid var(--line); border-radius:12px; padding:10px;
+             background:var(--bg); color:var(--fg); resize:none; height:96px; }
+  .row { display:flex; gap:8px; margin-top:8px; }
+  button { flex:1; font:inherit; font-weight:600; border-radius:12px; padding:12px; border:1px solid var(--line);
+           background:var(--bg); color:var(--fg); }
+  button.dark { background:var(--acc); color:var(--bg); border-color:var(--acc); }
+  button:disabled { opacity:.5; }
+  #status { font-size:13px; color:var(--mut); min-height:20px; margin-top:4px; text-align:center; }
+  #setup { padding:20px; }
+  #setup input { width:100%; font:inherit; padding:10px; margin:6px 0 14px; border:1px solid var(--line);
+                 border-radius:10px; background:var(--bg); color:var(--fg); }
+</style>
+</head>
+<body>
+<div id="setup" hidden>
+  <h3>VHM Phone Keyboard</h3>
+  <p>បើក link ពី VHM Chat Assist នៅលើ laptop · Open the link copied from VHM Chat Assist on the laptop.</p>
+  <label>Database URL</label><input id="sDb">
+  <label>Laptop code</label><input id="sCode">
+  <button class="dark" id="sGo">ភ្ជាប់ · Connect</button>
+</div>
+
+<div id="app" style="display:none">
+  <header>
+    <div id="who"><span id="cust">—</span><span id="dot">○</span></div>
+    <div id="msg"></div>
+  </header>
+  <main>
+    <input id="search" placeholder="ស្វែងរកគំរូ · Search templates">
+    <div id="list"></div>
+  </main>
+  <footer>
+    <textarea id="box" placeholder="វាយសារនៅទីនេះ · Type here"></textarea>
+    <div class="row">
+      <button id="ins">បញ្ចូល · Insert</button>
+      <button id="snd" class="dark">ផ្ញើ · Send</button>
+    </div>
+    <div id="status"></div>
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let cfg = {}, data = {}, es = null, pending = 0;
+
+// ---- config from link (#db=...&k=...) or saved ----
+function readConfig() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('db') && h.get('k')) {
+    cfg = { db: h.get('db').replace(/\/+$/, ''), k: h.get('k') };
+    try { localStorage.setItem('vhmkb', JSON.stringify(cfg)); } catch {}
+    history.replaceState(null, '', location.pathname);
+  } else {
+    try { cfg = JSON.parse(localStorage.getItem('vhmkb') || '{}'); } catch { cfg = {}; }
+  }
+  return cfg.db && cfg.k;
+}
+const url = (sub) => `${cfg.db}/vhmkb/${cfg.k}${sub ? '/' + sub : ''}.json`;
+
+// ---- live data from the laptop ----
+function setPath(obj, path, val) {
+  const parts = path.split('/').filter(Boolean);
+  if (!parts.length) return val;
+  const root = (obj && typeof obj === 'object') ? obj : {};
+  let o = root;
+  for (const p of parts.slice(0, -1)) { if (!o[p] || typeof o[p] !== 'object') o[p] = {}; o = o[p]; }
+  const last = parts[parts.length - 1];
+  if (val === null) delete o[last]; else o[last] = val;
+  return root;
+}
+
+function connect() {
+  if (es) es.close();
+  es = new EventSource(url(''));
+  es.onopen = () => { $('dot').textContent = '🟢'; };
+  es.onerror = () => { $('dot').textContent = '🔴'; };
+  const apply = (e, patch) => {
+    let ev; try { ev = JSON.parse(e.data); } catch { return; }
+    if (patch) for (const k in ev.data) data = setPath(data, ev.path + '/' + k, ev.data[k]);
+    else data = setPath(data, ev.path, ev.data);
+    render();
+  };
+  es.addEventListener('put', (e) => apply(e, false));
+  es.addEventListener('patch', (e) => apply(e, true));
+}
+
+const norm = (s) => (s || '').toLowerCase();
+
+function render() {
+  data = data || {};
+  const st = data.state || {};
+  $('cust').textContent = st.customer || '—';
+  $('msg').textContent = st.msg || '';
+  const q = norm($('search').value.trim());
+  let items;
+  if (q) {
+    items = (data.templates || []).filter((t) =>
+      norm(t.title).includes(q) || norm(t.text).includes(q) || (t.keywords || []).some((k) => norm(k).includes(q)))
+      .map((t) => ({ title: t.title, text: t.text.replace(/\{name\}/g, st.customer || 'បង'), found: [] }));
+  } else items = st.matches || [];
+  const list = $('list');
+  list.innerHTML = '';
+  if (!items.length) {
+    list.innerHTML = `<div class="empty">${q ? 'រកមិនឃើញ · Nothing found' : 'គ្មានពាក្យគន្លឹះត្រូវ · No keyword matched'}</div>`;
+  }
+  for (const it of items) {
+    const c = document.createElement('div'); c.className = 'card';
+    const h = document.createElement('div'); h.className = 'head';
+    const b = document.createElement('b'); b.textContent = it.title || ''; h.appendChild(b);
+    for (const k of it.found || []) { const s = document.createElement('span'); s.className = 'chip'; s.textContent = k; h.appendChild(s); }
+    const t = document.createElement('div'); t.className = 'text'; t.textContent = it.text;
+    c.append(h, t);
+    c.onclick = () => { $('box').value = it.text; $('box').focus(); };
+    list.appendChild(c);
+  }
+  // result of last send
+  const ack = data.ack;
+  if (pending && ack && ack.ts === pending) {
+    $('status').textContent = ack.ok ? (ack.sent ? '✓ ផ្ញើរួច · Sent' : '✓ បានបញ្ចូលលើ laptop · Inserted on laptop')
+                                     : '✗ មិនបាន — បើកឆាតលើ laptop · Failed — open the chat on the laptop';
+    if (ack.ok) $('box').value = '';
+    pending = 0; lock(false);
+  }
+}
+
+function lock(on) { $('ins').disabled = on; $('snd').disabled = on; }
+
+async function push(send) {
+  const text = $('box').value.trim();
+  if (!text) return;
+  const ts = Date.now();
+  pending = ts; lock(true);
+  $('status').textContent = 'កំពុងផ្ញើ · Sending…';
+  try {
+    const r = await fetch(url('in'), { method: 'PUT', body: JSON.stringify({ text, send, ts }) });
+    if (!r.ok) throw new Error(r.status);
+  } catch (e) {
+    $('status').textContent = '✗ គ្មានអ៊ីនធឺណិត · No connection';
+    pending = 0; lock(false); return;
+  }
+  setTimeout(() => {
+    if (pending === ts) {
+      $('status').textContent = '✗ laptop មិនឆ្លើយ — បើក panel VHM · Laptop not answering — open the VHM panel';
+      pending = 0; lock(false);
+    }
+  }, 8000);
+}
+
+$('ins').onclick = () => push(false);
+$('snd').onclick = () => push(true);
+$('search').oninput = render;
+
+function start() {
+  $('setup').hidden = true;
+  $('app').style.display = 'contents';
+  connect();
+}
+$('sGo').onclick = () => {
+  cfg = { db: $('sDb').value.trim().replace(/\/+$/, ''), k: $('sCode').value.trim() };
+  if (!cfg.db || !cfg.k) return;
+  try { localStorage.setItem('vhmkb', JSON.stringify(cfg)); } catch {}
+  start();
+};
+
+if (readConfig()) start(); else $('setup').hidden = false;
+document.addEventListener('visibilitychange', () => { if (!document.hidden && cfg.db) connect(); });
+</script>
+</body>
+</html>
