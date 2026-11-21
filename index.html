@@ -62,6 +62,8 @@
       <button id="snd" class="dark">ផ្ញើ · Send</button>
     </div>
     <div id="status"></div>
+    <div id="info" style="font-size:11px;color:var(--mut);text-align:center;word-break:break-all"></div>
+    <div style="text-align:center"><a href="#" id="reset" style="font-size:12px;color:var(--mut)">Reset link</a></div>
   </footer>
 </div>
 
@@ -99,7 +101,13 @@ function connect() {
   if (es) es.close();
   es = new EventSource(url(''));
   es.onopen = () => { $('dot').textContent = '🟢'; };
-  es.onerror = () => { $('dot').textContent = '🔴'; };
+  es.onerror = async () => {
+    $('dot').textContent = '🔴';
+    try {
+      const r = await fetch(url(''));
+      $('info').textContent = 'Test: HTTP ' + r.status + ' ' + (await r.text()).slice(0, 80);
+    } catch (err) { $('info').textContent = 'Test failed: ' + (err.message || err); }
+  };
   const apply = (e, patch) => {
     let ev; try { ev = JSON.parse(e.data); } catch { return; }
     if (patch) for (const k in ev.data) data = setPath(data, ev.path + '/' + k, ev.data[k]);
@@ -159,9 +167,9 @@ async function push(send) {
   $('status').textContent = 'កំពុងផ្ញើ · Sending…';
   try {
     const r = await fetch(url('in'), { method: 'PUT', body: JSON.stringify({ text, send, ts }) });
-    if (!r.ok) throw new Error(r.status);
+    if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + (await r.text()).slice(0, 80));
   } catch (e) {
-    $('status').textContent = '✗ គ្មានអ៊ីនធឺណិត · No connection';
+    $('status').textContent = '✗ ' + (e.message || e);
     pending = 0; lock(false); return;
   }
   setTimeout(() => {
@@ -176,7 +184,14 @@ $('ins').onclick = () => push(false);
 $('snd').onclick = () => push(true);
 $('search').oninput = render;
 
+$('reset').onclick = (e) => {
+  e.preventDefault();
+  try { localStorage.removeItem('vhmkb'); } catch {}
+  location.href = location.pathname;
+};
+
 function start() {
+  $('info').textContent = (cfg.db || '').replace(/^https:\/\//, '') + ' · ' + cfg.k;
   $('setup').hidden = true;
   $('app').style.display = 'contents';
   connect();
